@@ -48,13 +48,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false)
+      return
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user)
 
-      if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid))
-        if (userDoc.exists()) {
-          setUserData(userDoc.data() as UserData)
+      if (user && db) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid))
+          if (userDoc.exists()) {
+            setUserData(userDoc.data() as UserData)
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error)
         }
       } else {
         setUserData(null)
@@ -67,6 +76,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [])
 
   const signUp = async (email: string, password: string, additionalData: Omit<UserData, "email" | "createdAt">) => {
+    if (!auth || !db) {
+      throw new Error("Firebase not initialized. Please check your configuration.")
+    }
+
     const { user } = await createUserWithEmailAndPassword(auth, email, password)
 
     await updateProfile(user, {
@@ -84,14 +97,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const signIn = async (email: string, password: string) => {
+    if (!auth) {
+      throw new Error("Firebase not initialized. Please check your configuration.")
+    }
     await signInWithEmailAndPassword(auth, email, password)
   }
 
   const logout = async () => {
+    if (!auth) {
+      throw new Error("Firebase not initialized. Please check your configuration.")
+    }
     await signOut(auth)
   }
 
   const resetPassword = async (email: string) => {
+    if (!auth) {
+      throw new Error("Firebase not initialized. Please check your configuration.")
+    }
     await sendPasswordResetEmail(auth, email)
   }
 
