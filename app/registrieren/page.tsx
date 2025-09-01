@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,6 +12,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
 import { Eye, EyeOff, Mail, Lock, User, Building } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -25,6 +27,9 @@ export default function RegisterPage() {
     agreeToTerms: false,
   })
   const [isLoading, setIsLoading] = useState(false)
+  const { signUp } = useAuth()
+  const router = useRouter()
+  const [error, setError] = useState("")
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -33,15 +38,43 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError("")
 
-    // Simulate registration process
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwörter stimmen nicht überein")
+      setIsLoading(false)
+      return
+    }
 
-    console.log("[v0] Registration attempt:", {
-      email: formData.email,
-      company: formData.company,
-    })
-    setIsLoading(false)
+    try {
+      await signUp(formData.email, formData.password, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        company: formData.company,
+      })
+
+      // Redirect to dashboard on success
+      router.push("/dashboard")
+    } catch (error: any) {
+      console.error("Registration error:", error)
+
+      // Handle Firebase Auth errors
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          setError("Diese E-Mail-Adresse wird bereits verwendet")
+          break
+        case "auth/weak-password":
+          setError("Das Passwort ist zu schwach")
+          break
+        case "auth/invalid-email":
+          setError("Ungültige E-Mail-Adresse")
+          break
+        default:
+          setError("Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.")
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -60,6 +93,12 @@ export default function RegisterPage() {
 
           {/* Registration Form */}
           <Card className="glass-effect border-0 shadow-2xl p-8">
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Name Fields */}
               <div className="grid grid-cols-2 gap-4">

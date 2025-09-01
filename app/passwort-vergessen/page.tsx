@@ -11,22 +11,39 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import Link from "next/link"
 import { Mail, ArrowLeft, CheckCircle } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [error, setError] = useState("")
+  const { resetPassword } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError("")
 
-    // Simulate password reset process
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      await resetPassword(email)
+      setIsSubmitted(true)
+    } catch (error: any) {
+      console.error("Password reset error:", error)
 
-    console.log("[v0] Password reset request:", { email })
-    setIsSubmitted(true)
-    setIsLoading(false)
+      switch (error.code) {
+        case "auth/user-not-found":
+          setError("Kein Benutzer mit dieser E-Mail-Adresse gefunden")
+          break
+        case "auth/invalid-email":
+          setError("Ungültige E-Mail-Adresse")
+          break
+        default:
+          setError("Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.")
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (isSubmitted) {
@@ -92,6 +109,12 @@ export default function ForgotPasswordPage() {
 
           {/* Reset Form */}
           <Card className="glass-effect border-0 shadow-2xl p-8">
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-foreground">
