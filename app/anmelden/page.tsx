@@ -28,11 +28,19 @@ export default function LoginPage() {
     setIsLoading(true)
     setError("")
 
+    if (!signIn) {
+      setError("Authentifizierungsdienst ist nicht verfügbar. Bitte laden Sie die Seite neu.")
+      setIsLoading(false)
+      return
+    }
+
     try {
+      console.log("[v0] Attempting login with email:", email)
       await signIn(email, password)
+      console.log("[v0] Login successful, redirecting to dashboard")
       router.push("/dashboard")
     } catch (error: any) {
-      console.error("Login error:", error)
+      console.error("[v0] Login error:", error)
 
       // Handle Firebase Auth errors
       switch (error.code) {
@@ -44,8 +52,15 @@ export default function LoginPage() {
         case "auth/too-many-requests":
           setError("Zu viele Anmeldeversuche. Bitte versuchen Sie es später erneut.")
           break
+        case "auth/network-request-failed":
+          setError("Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung.")
+          break
         default:
-          setError("Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.")
+          if (error.message?.includes("Firebase not initialized")) {
+            setError("Firebase-Konfiguration fehlt. Bitte kontaktieren Sie den Administrator.")
+          } else {
+            setError(`Ein Fehler ist aufgetreten: ${error.message || "Unbekannter Fehler"}`)
+          }
       }
     } finally {
       setIsLoading(false)

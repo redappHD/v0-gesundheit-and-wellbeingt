@@ -97,10 +97,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const signIn = async (email: string, password: string) => {
+    console.log("[v0] SignIn function called with email:", email)
+
     if (!auth) {
+      console.error("[v0] Auth not initialized")
       throw new Error("Firebase not initialized. Please check your configuration.")
     }
-    await signInWithEmailAndPassword(auth, email, password)
+
+    console.log("[v0] Auth is available, attempting signInWithEmailAndPassword")
+
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password)
+      console.log("[v0] SignIn successful:", result.user.uid)
+      return result
+    } catch (error) {
+      console.error("[v0] SignIn error:", error)
+      throw error
+    }
   }
 
   const logout = async () => {
